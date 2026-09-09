@@ -24,6 +24,9 @@ class AppLocalizations {
 
   static const _values = <String, Map<String, String>>{
     'en': {
+      'about': 'About',
+'aboutIntro': 'HourDraft helps you track and log your hours by category, stay within your weekly and daily limits, and see your progress toward your yearly goal.',
+'appVersion': 'Version 1.0.0',
       'appName': 'HourDraft',
       'home': 'Home',
       'history': 'History',
@@ -164,6 +167,9 @@ class AppLocalizations {
     },
     'ar': {
       'appName': 'HourDraft',
+      'about': 'حول التطبيق',
+'aboutIntro': 'يساعدك HourDraft على تتبع وتسجيل ساعاتك حسب الفئة، والبقاء ضمن حدودك الأسبوعية واليومية، ومتابعة تقدمك نحو هدفك السنوي.',
+'appVersion': 'الإصدار 1.0.0',
       'home': 'الرئيسية',
       'history': 'السجل',
       'approval': 'الموافقة',
@@ -302,6 +308,9 @@ class AppLocalizations {
     },
     'he': {
       'appName': 'HourDraft',
+      'about': 'אודות',
+'aboutIntro': 'HourDraft עוזר לך לעקוב ולתעד את השעות שלך לפי קטגוריה, להישאר בגבולות השבועיים והיומיים שלך, ולעקוב אחר ההתקדמות שלך לעבר היעד השנתי.',
+'appVersion': 'גרסה 1.0.0',
       'home': 'בית',
       'history': 'היסטוריה',
       'approval': 'אישורים',

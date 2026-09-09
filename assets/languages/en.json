@@ -1,4 +1,7 @@
 {
+  "about": "About",
+  "aboutIntro": "HourDraft helps you track and log your hours by category, stay within your weekly and daily limits, and see your progress toward your yearly goal.",
+  "appVersion": "Version 1.0.0",
   "appName": "HourDraft",
   "home": "Home",
   "history": "History",

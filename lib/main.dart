@@ -300,6 +300,12 @@ class _RootShellState extends State<RootShell> {
                     l10n.tr('feedback'),
                     () => _openPage(const FeedbackPage()),
                   ),
+                  _drawerItem(
+                    context,
+                    Icons.info_outline,
+                    l10n.tr('about'),
+                    () => _openPage(const InfoPage(kind: 'about')),
+                  ),
                 ],
               ),
             ),
@@ -307,7 +313,8 @@ class _RootShellState extends State<RootShell> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'HourDraft 1.0.0',
+                '''HourDraft 1.0.0
+                © 2026 Ibrahim Alayan. All Rights Reserved.''',
                 style: TextStyle(fontSize: 11, color: AppColors.textMuted),
               ),
             ),
@@ -2651,7 +2658,18 @@ class InfoPage extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Text(
-                'HourDraft stores your entries locally on this device. The app does not upload or share your logged hours. You can remove your data from the History screen at any time.',
+                '''**Privacy Notice**
+
+HourDraft is designed to work locally on the user's device.
+
+The app may ask for the user's name to personalize the application. This information is stored locally on the user's device and is not transmitted to the developer, a remote server, or third parties.
+
+HourDraft does not sell, share, or use the user's name for advertising or tracking.
+
+The app does not require an online account or cloud storage for its core functionality.
+
+© 2026 Ibrahim Alayan. All Rights Reserved.
+''',
                 style: TextStyle(
                   height: 1.6,
                   color: AppColors.textMuted,
@@ -2672,6 +2690,57 @@ class InfoPage extends StatelessWidget {
 /// The three form links (and the empty placeholder email address) live in
 /// app_localizations.dart, at the top, in `feedbackFormLinks` and
 /// `feedbackEmailAddress`.
+class AboutPage extends StatelessWidget {
+  const AboutPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.tr('about'))),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.info_outline, color: AppColors.accent),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    l10n.tr('appName'),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.tr('appVersion'),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.tr('aboutIntro'),
+                    style: TextStyle(color: AppColors.textMuted, height: 1.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 class FeedbackPage extends StatelessWidget {
   const FeedbackPage({super.key});
 
