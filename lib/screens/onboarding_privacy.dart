@@ -66,9 +66,12 @@ class OnboardingPrivacyScreen extends StatelessWidget {
                         ],
                       ),
                       const Spacer(),
+                      // 4 steps total: Welcome -> How -> Name -> Privacy (this, last)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          _dot(false),
+                          const SizedBox(width: 8),
                           _dot(false),
                           const SizedBox(width: 8),
                           _dot(false),

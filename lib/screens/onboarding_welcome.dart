@@ -81,10 +81,13 @@ class _OnboardingWelcomeScreenState extends State<OnboardingWelcomeScreen> {
                         ],
                       ),
                       const Spacer(),
+                      // 4 steps total now: Welcome -> How -> Name -> Privacy
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _dot(true),
+                          const SizedBox(width: 8),
+                          _dot(false),
                           const SizedBox(width: 8),
                           _dot(false),
                           const SizedBox(width: 8),

@@ -10,6 +10,7 @@ class HourEntry {
     required this.category,
     required this.hours,
     required this.note,
+    this.academicYear,
     this.approved,
   });
 
@@ -18,6 +19,7 @@ class HourEntry {
   String category;
   double hours;
   String note;
+  String? academicYear;
   bool? approved;
 
   Map<String, dynamic> toJson() => {
@@ -26,6 +28,7 @@ class HourEntry {
         'category': category,
         'hours': hours,
         'note': note,
+        'academicYear': academicYear,
         'approved': approved,
       };
 
@@ -35,12 +38,11 @@ class HourEntry {
         category: json['category'] as String? ?? 'indoor',
         hours: (json['hours'] as num?)?.toDouble() ?? 0,
         note: json['note'] as String? ?? '',
+        academicYear: json['academicYear'] as String?,
         approved: json['approved'] as bool?,
       );
 }
 
-/// A date range the student is not allowed to log volunteer hours in
-/// (e.g. school exam week, a family trip, a program blackout period).
 class BlockedPeriod {
   BlockedPeriod({
     required this.id,
@@ -50,8 +52,8 @@ class BlockedPeriod {
   });
 
   final String id;
-  String start; // yyyy-MM-dd, inclusive
-  String end; // yyyy-MM-dd, inclusive
+  String start;
+  String end;
   String label;
 
   Map<String, dynamic> toJson() => {
@@ -75,34 +77,28 @@ class HourDraftStore extends ChangeNotifier {
     required this.languageCode,
     required this.name,
     required this.limits,
+    required this.dailyLimits,
     required this.blockedPeriods,
     required this.blockedWeekday,
     required this.yearlyGoal,
+    required this.academicYear,
     required this.themeMode,
     required this.onboardingDone,
   });
 
-  static const _storageKey = 'hourdraft_state_v1';
+  static const _storageKey = 'hourdraft_state_v2';
 
   final List<HourEntry> entries;
   String languageCode;
   String name;
   Map<String, double> limits;
+  Map<String, double> dailyLimits;
 
-  /// Explicit date ranges the student cannot log hours in.
   List<BlockedPeriod> blockedPeriods;
-
-  /// A weekday (0 = Sunday ... 6 = Saturday) that repeats every month the
-  /// student is unavailable, or null if not set.
   int? blockedWeekday;
-
-  /// Yearly hour goal, independent of the weekly per-category limits.
   double yearlyGoal;
-
-  /// 'system' | 'light' | 'dark'
+  String? academicYear;
   String themeMode;
-
-  /// Whether the 3-screen intro has already been shown once.
   bool onboardingDone;
 
   ThemeMode get flutterThemeMode {
@@ -124,9 +120,11 @@ class HourDraftStore extends ChangeNotifier {
         languageCode: 'en',
         name: 'Alex Student',
         limits: {'indoor': 20, 'outdoor': 20, 'group': 20},
+        dailyLimits: {'indoor': 8, 'outdoor': 8, 'group': 8},
         blockedPeriods: <BlockedPeriod>[],
         blockedWeekday: null,
         yearlyGoal: 100,
+         academicYear: 'year1',
         themeMode: 'system',
         onboardingDone: false,
       );
@@ -136,20 +134,32 @@ class HourDraftStore extends ChangeNotifier {
       final data = jsonDecode(raw) as Map<String, dynamic>;
       final rawEntries = data['entries'] as List<dynamic>? ?? [];
       final rawPeriods = data['blockedPeriods'] as List<dynamic>? ?? [];
+      final selectedYear = _normalizeAcademicYear(
+            data['academicYear'] as String?,
+          ) ??
+          'year1';
+      final loadedEntries = rawEntries
+          .whereType<Map<String, dynamic>>()
+          .map(HourEntry.fromJson)
+          .toList();
+      // Entries created before year selection are kept in the first
+      // available year instead of disappearing after the migration.
+      for (final entry in loadedEntries) {
+        entry.academicYear ??= selectedYear;
+      }
       return HourDraftStore(
-        entries: rawEntries
-            .whereType<Map<String, dynamic>>()
-            .map(HourEntry.fromJson)
-            .toList(),
+        entries: loadedEntries,
         languageCode: data['languageCode'] as String? ?? 'en',
         name: data['name'] as String? ?? 'Alex Student',
         limits: _readLimits(data['limits']),
+        dailyLimits: _readDailyLimits(data['dailyLimits']),
         blockedPeriods: rawPeriods
             .whereType<Map<String, dynamic>>()
             .map(BlockedPeriod.fromJson)
             .toList(),
         blockedWeekday: data['blockedWeekday'] as int?,
         yearlyGoal: (data['yearlyGoal'] as num?)?.toDouble() ?? 100,
+        academicYear: selectedYear,
         themeMode: data['themeMode'] as String? ?? 'system',
         onboardingDone: data['onboardingDone'] as bool? ?? false,
       );
@@ -159,9 +169,11 @@ class HourDraftStore extends ChangeNotifier {
         languageCode: 'en',
         name: 'Alex Student',
         limits: {'indoor': 20, 'outdoor': 20, 'group': 20},
+        dailyLimits: {'indoor': 8, 'outdoor': 8, 'group': 8},
         blockedPeriods: <BlockedPeriod>[],
         blockedWeekday: null,
         yearlyGoal: 100,
+         academicYear: 'year1',
         themeMode: 'system',
         onboardingDone: false,
       );
@@ -171,23 +183,36 @@ class HourDraftStore extends ChangeNotifier {
   double total({String? category, DateTime? from, DateTime? to}) {
     return entries
         .where((entry) =>
+            _matchesSelectedYear(entry) &&
             (category == null || entry.category == category) &&
             _inRange(entry.date, from, to))
         .fold<double>(0, (sum, entry) => sum + entry.hours);
   }
 
+  double dailyTotal(String date, {String? category}) {
+    return entries
+        .where((entry) =>
+            _matchesSelectedYear(entry) &&
+            entry.date == date &&
+            (category == null || entry.category == category))
+        .fold<double>(0, (sum, entry) => sum + entry.hours);
+  }
+
   int loggedDays({DateTime? from, DateTime? to}) => entries
-      .where((entry) => _inRange(entry.date, from, to))
+      .where((entry) =>
+          _matchesSelectedYear(entry) && _inRange(entry.date, from, to))
       .map((entry) => entry.date)
       .toSet()
       .length;
 
   List<HourEntry> forDate(String date) => entries
-      .where((entry) => entry.date == date)
+      .where((entry) =>
+          _matchesSelectedYear(entry) && entry.date == date)
       .toList()
     ..sort((a, b) => b.id.compareTo(a.id));
 
   List<HourEntry> get sortedEntries => [...entries]
+    ..removeWhere((entry) => !_matchesSelectedYear(entry))
     ..sort((a, b) => b.date.compareTo(a.date));
 
   void add(HourEntry entry) {
@@ -225,8 +250,18 @@ class HourDraftStore extends ChangeNotifier {
     _changed();
   }
 
+  void updateDailyLimits(Map<String, double> values) {
+    dailyLimits = values;
+    _changed();
+  }
+
   void setYearlyGoal(double value) {
     yearlyGoal = value;
+    _changed();
+  }
+
+  void setAcademicYear(String value) {
+    academicYear = _normalizeAcademicYear(value) ?? 'year1';
     _changed();
   }
 
@@ -255,9 +290,6 @@ class HourDraftStore extends ChangeNotifier {
     _changed();
   }
 
-  /// True if the student is not allowed to log hours on [date] — either
-  /// because it falls inside a named blocked period, or it matches the
-  /// recurring blocked weekday.
   bool isDateBlocked(DateTime date) {
     final key = dateKey(date);
     for (final p in blockedPeriods) {
@@ -270,7 +302,6 @@ class HourDraftStore extends ChangeNotifier {
     return false;
   }
 
-  /// Returns a human label for why [date] is blocked, or null if it isn't.
   String? blockedLabelFor(DateTime date) {
     final key = dateKey(date);
     for (final p in blockedPeriods) {
@@ -278,7 +309,7 @@ class HourDraftStore extends ChangeNotifier {
       if (key.compareTo(p.start) >= 0 && key.compareTo(p.end) <= 0) return p.label;
     }
     if (blockedWeekday != null && date.weekday % 7 == blockedWeekday) {
-      return null; // caller can fall back to a generic "recurring" message
+      return null;
     }
     return null;
   }
@@ -304,19 +335,20 @@ class HourDraftStore extends ChangeNotifier {
             'languageCode': languageCode,
             'name': name,
             'limits': limits,
+            'dailyLimits': dailyLimits,
             'blockedPeriods': blockedPeriods.map((p) => p.toJson()).toList(),
             'blockedWeekday': blockedWeekday,
             'yearlyGoal': yearlyGoal,
+            'academicYear': academicYear,
             'themeMode': themeMode,
             'onboardingDone': onboardingDone,
           }),
         },
       );
     } on PlatformException {
-      // The app remains usable if it is temporarily running on a target
-      // without the native storage handler, such as a preview shell.
+      // ignore
     } on MissingPluginException {
-      // See the platform setup instructions for iOS and Android.
+      // ignore
     }
   }
 
@@ -346,6 +378,21 @@ class HourDraftStore extends ChangeNotifier {
     }
     return {'indoor': 20, 'outdoor': 20, 'group': 20};
   }
+
+  static Map<String, double> _readDailyLimits(dynamic value) {
+    if (value is Map) {
+      return {
+        'indoor': (value['indoor'] as num?)?.toDouble() ?? 8,
+        'outdoor': (value['outdoor'] as num?)?.toDouble() ?? 8,
+        'group': (value['group'] as num?)?.toDouble() ?? 8,
+      };
+    }
+    return {'indoor': 8, 'outdoor': 8, 'group': 8};
+  }
+
+  bool _matchesSelectedYear(HourEntry entry) {
+    return entry.academicYear == (academicYear ?? 'year1');
+  }
 }
 
 bool _inRange(String date, DateTime? from, DateTime? to) {
@@ -362,6 +409,17 @@ bool _inRange(String date, DateTime? from, DateTime? to) {
 }
 
 String dateKey(DateTime date) => _dateKey(date);
+
+String? _normalizeAcademicYear(String? value) {
+  switch (value) {
+    case 'year1':
+    case 'year2':
+    case 'year3':
+      return value;
+    default:
+      return null;
+  }
+}
 
 String _dateKey(DateTime date) =>
     '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

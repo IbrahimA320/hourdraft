@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme.dart';
 import '../../app_state.dart';
 import '../../app_localizations.dart';
-import 'onboarding_privacy.dart';
+import 'onboarding_name.dart';
 
 class OnboardingHowScreen extends StatelessWidget {
   const OnboardingHowScreen({required this.store, super.key});
@@ -51,12 +51,15 @@ class OnboardingHowScreen extends StatelessWidget {
                         subtitle: 'Know which hours are pending and which are approved.',
                       ),
                       const Spacer(),
+                      // 4 steps total: Welcome -> How (this) -> Name -> Privacy
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _dot(false),
                           const SizedBox(width: 8),
                           _dot(true),
+                          const SizedBox(width: 8),
+                          _dot(false),
                           const SizedBox(width: 8),
                           _dot(false),
                         ],
@@ -68,7 +71,7 @@ class OnboardingHowScreen extends StatelessWidget {
                           onPressed: () => Navigator.push(
                             context,
                             MaterialPageRoute<void>(
-                              builder: (_) => OnboardingPrivacyScreen(store: store),
+                              builder: (_) => OnboardingNameScreen(store: store),
                             ),
                           ),
                           child: Text(l10n.tr('next')),
